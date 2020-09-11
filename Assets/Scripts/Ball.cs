@@ -1,0 +1,86 @@
+﻿using UnityEngine;
+using UnityEngine.UIElements;
+
+public class Ball : MonoBehaviour
+{
+    // Config paramaters
+    [SerializeField] Paddle paddle1;
+    [SerializeField] float xPush = 2f;
+    [SerializeField] float yPush = 15f;
+    [SerializeField] AudioClip[] ballSounds;
+    [SerializeField] float randomFactor = 2f;
+    [SerializeField] float constantSpeed = 12f;
+
+    // state
+    Vector2 paddleToBallVector;
+    bool hasStarted = false;
+    Vector2 vel;
+    float angle;
+
+    // Cached component references
+    AudioSource myAudioSource;
+    Rigidbody2D myRigidBody2D;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        paddleToBallVector = transform.position - paddle1.transform.position;
+        myAudioSource = GetComponent<AudioSource>();                            // finding component once, upon start
+        myRigidBody2D = GetComponent<Rigidbody2D>();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        Vector2 unit = GetComponent<Rigidbody2D>().velocity.normalized;
+        myRigidBody2D.velocity = unit * constantSpeed;
+
+        Vector2 vel = new Vector2(myRigidBody2D.velocity.x, myRigidBody2D.velocity.y).normalized * 5;
+        Debug.DrawRay(transform.position, vel, Color.magenta);
+
+        if (!hasStarted) 
+        {
+            LockBallToPaddle();
+            LaunchOnMouseClick();
+        }
+
+        angle = Vector3.Angle(Vector3.up, vel);
+    }
+
+    private void LaunchOnMouseClick()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            hasStarted = true;
+            myRigidBody2D.velocity = new Vector2(xPush, yPush);    // access ridigbody2d component of object
+        }
+    }
+
+    private void LockBallToPaddle()
+    {
+        Vector2 paddlePos = new Vector2(paddle1.transform.position.x, paddle1.transform.position.y);
+        transform.position = paddlePos + paddleToBallVector;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        Vector2 velocityTweak = new Vector2(Random.Range(0.1f, randomFactor), 0);
+
+        if (transform.position.x > 8)
+        {
+            velocityTweak *= -1;
+        }
+        
+
+        if (hasStarted)
+        {
+            AudioClip clip = ballSounds[UnityEngine.Random.Range(0,ballSounds.Length)];
+            myAudioSource.PlayOneShot(clip);          // ensures audio plays without interruptions
+            myRigidBody2D.velocity += velocityTweak;
+        }
+
+
+        Debug.Log("angle:" + angle);
+
+    }
+}
